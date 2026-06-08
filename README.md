@@ -220,7 +220,7 @@ docker-compose up -d
 | 索引文档 | ❌ | ✅ | ✅ |
 | 删除文档 | ❌ | ❌ | ✅ |
 
-## 面试亮点
+## 亮点
 
 1. **零成本架构** - 智谱GLM-4-Flash(免费无限额) + 本地Embedding(¥0)
 2. **混合检索 + RRF融合** - BM25关键词 + 向量语义双路检索，Reciprocal Rank Fusion融合排序
