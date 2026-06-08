@@ -1,0 +1,34 @@
+# 环境变量（含API密钥）
+.env
+
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# 数据文件
+*.db
+chroma_db/
+*.pkl
+
+# 日志
+*.log
+
+# 临时/测试脚本
+backend/direct_index.py
+backend/direct_index2.py
+backend/test_*.py
+backend/start_backend.bat
+
+# Node.js
+frontend/node_modules/
+frontend/dist/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
