@@ -11,7 +11,7 @@
 - **关键词检索**: BM25 (rank_bm25 + jieba分词)
 - **检索融合**: Reciprocal Rank Fusion (RRF)
 - **LLM**: 智谱 GLM-4-Flash (OpenAI兼容接口，国内免费)
-- **Embedding**: paraphrase-multilingual-MiniLM-L12-v2 (本地运行，384维)
+- **Embedding**: 智谱 embedding-2 (API调用，1024维，国内免费)
 - **认证**: JWT + RBAC (admin/doctor/viewer)
 
 ### 前端
@@ -77,7 +77,7 @@
 | 项目 | 本方案 | OpenAI方案 |
 |------|--------|-----------|
 | LLM | **¥0** (智谱GLM-4-Flash，国内免费无限额) | $2.50-10/百万token |
-| Embedding | **¥0** (本地MiniLM-L12-v2) | $0.02/百万token |
+| Embedding | **¥0** (智谱embedding-2，国内免费) | $0.02/百万token |
 | 向量库 | **¥0** (ChromaDB本地) | $0 |
 | **月总计** | **¥0** | ~$780 |
 
@@ -102,7 +102,6 @@ medical-agent/
 │   │   │   └── system.py        # 健康检查 + 指标
 │   │   ├── services/
 │   │   │   ├── rag_engine.py    # RAG核心：检索→生成→验证
-│   │   │   ├── embedding_service.py  # 子进程Embedding (解决Win+Py3.13兼容)
 │   │   │   ├── document_service.py   # 文档业务逻辑
 │   │   │   └── auth_service.py       # JWT认证 + RBAC
 │   │   └── utils/
@@ -222,13 +221,13 @@ docker-compose up -d
 
 ## 亮点
 
-1. **零成本架构** - 智谱GLM-4-Flash(免费无限额) + 本地Embedding(¥0)
+1. **零成本架构** - 智谱GLM-4-Flash(免费无限额) + 智谱embedding-2(免费)
 2. **混合检索 + RRF融合** - BM25关键词 + 向量语义双路检索，Reciprocal Rank Fusion融合排序
 3. **Self-RAG验证机制** - 生成后二次LLM验证忠实度，不可靠回答自动拒绝，提升可信度
-4. **子进程Embedding架构** - 解决Windows+Python3.13下SentenceTransformer死锁问题
+4. **子进程Embedding架构** - 通过独立Python进程调用智谱embedding-2 API，避免阻塞主事件循环
 5. **医生反馈(HITL)** - 人工在环反馈机制，支持正确/有误/部分正确标注
 6. **RBAC权限控制** - admin/doctor/viewer三级角色，接口级权限拦截
-7. **完整工程实践** - JWT认证、异步API、数据库迁移、Docker部署
+7. **完整工程实践** - JWT认证、异步API、Docker部署、自动初始化
 
 ## License
 

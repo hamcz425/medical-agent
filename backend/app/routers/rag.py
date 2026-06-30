@@ -11,7 +11,7 @@ from app.schemas.query import (
     QueryRequest, QueryResponse, SourceDocument, VerificationResult,
     QueryHistoryResponse, FeedbackRequest, FeedbackResponse, SystemStats
 )
-from app.services.auth_service import get_current_user
+from app.services.auth_service import get_current_user, require_role
 from app.services.rag_engine import rag_engine
 
 router = APIRouter(prefix="/api/rag", tags=["RAG Query"])
@@ -71,10 +71,16 @@ async def query_rag(
     if result.get("verification"):
         verification = VerificationResult(**result["verification"])
 
+    response_text = result.get("response") or ""
+    if result.get("llm_failed"):
+        source_titles = result.get("source_titles", [])
+        titles_str = "、".join(source_titles[:3]) if source_titles else "相关文档"
+        response_text = f"AI生成服务暂时不可用，已为您检索到相关文档：{titles_str}。请稍后重试或查看文档列表。"
+
     return QueryResponse(
         id=result.get("id", 0),
         query=request.query,
-        response=result["response"],
+        response=response_text,
         confidence=result["confidence"],
         processing_time=result["processing_time"],
         sources=sources,
@@ -150,7 +156,7 @@ async def get_query_history(
 @router.get("/stats", response_model=SystemStats)
 async def get_system_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = require_role("admin", "doctor")
 ):
     from app.services.document_service import DocumentService
     doc_service = DocumentService(db)

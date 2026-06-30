@@ -13,10 +13,10 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
-    if user_data.role in ("admin", "researcher"):
+    if user_data.role and user_data.role != "viewer":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cannot self-register as admin or researcher"
+            detail="Self-registration is only allowed for viewer role"
         )
 
     existing = await db.execute(
@@ -33,7 +33,7 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         email=user_data.email,
         hashed_password=get_password_hash(user_data.password),
         full_name=user_data.full_name,
-        role=user_data.role,
+        role="viewer",
         department=user_data.department
     )
     db.add(user)

@@ -16,7 +16,7 @@ ZHIPUAI_BASE_URL = "https://open.bigmodel.cn/api/paas/v4/embeddings"
 EMBEDDING_MODEL = "embedding-2"
 EMBEDDING_DIMENSION = 1024
 
-CHROMA_DIR = os.path.join(os.path.dirname(__file__), "chroma_db")
+CHROMA_DIR = os.environ.get("CHROMA_PERSIST_DIR", os.path.join(os.path.dirname(__file__), "chroma_db"))
 COLLECTION_NAME = "medical_documents"
 BM25_INDEX_PATH = os.path.join(CHROMA_DIR, "bm25_index.pkl")
 

@@ -20,6 +20,7 @@ INDEX_HTML = os.path.join(STATIC_DIR, "index.html") if STATIC_DIR else None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    settings.validate()
     await init_db()
     logger.info("Database tables created.")
 

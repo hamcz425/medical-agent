@@ -110,16 +110,24 @@ async def upload_document(
     safe_filename = re.sub(r'[^\w\-_\. ]', '_', file.filename or "unknown")
     safe_filename = safe_filename.lstrip(". ")
 
+    if not content:
+        raise HTTPException(status_code=400, detail="File is empty")
+
     if safe_filename.endswith(".txt") or safe_filename.endswith(".md"):
         text = content.decode("utf-8", errors="replace")
     elif safe_filename.endswith(".pdf"):
+        if content[:4] != b'%PDF':
+            raise HTTPException(status_code=400, detail="Invalid PDF file format")
         try:
             from pypdf import PdfReader
-            reader = PdfReader(file.file)
+            import io
+            reader = PdfReader(io.BytesIO(content))
             text = "\n".join(page.extract_text() or "" for page in reader.pages)
         except Exception as e:
             raise HTTPException(status_code=400, detail="PDF parsing failed")
     elif safe_filename.endswith(".docx"):
+        if content[:2] != b'PK':
+            raise HTTPException(status_code=400, detail="Invalid DOCX file format")
         try:
             from docx import Document as DocxDocument
             import io
@@ -171,7 +179,11 @@ async def update_document(
     current_user: User = require_role("admin", "doctor", "researcher")
 ):
     service = DocumentService(db)
-    document = await service.update(doc_id, update_data.model_dump(exclude_unset=True))
+    update_dict = update_data.model_dump(exclude_unset=True)
+    content_fields = {"title", "content", "category", "source"}
+    if content_fields & set(update_dict.keys()):
+        update_dict["status"] = "pending"
+    document = await service.update(doc_id, update_dict)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     return DocumentResponse.model_validate(document)

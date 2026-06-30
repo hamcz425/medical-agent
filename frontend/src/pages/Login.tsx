@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message, Tabs, Space, Select } from 'antd';
+import { Form, Input, Button, Card, Typography, message, Tabs, Space } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../api';
@@ -26,7 +26,7 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleRegister = async (values: { username: string; email: string; password: string; full_name?: string; role?: string; department?: string }) => {
+  const handleRegister = async (values: { username: string; email: string; password: string; full_name?: string; department?: string }) => {
     setLoading(true);
     try {
       const response = await authAPI.register(values);
@@ -88,12 +88,6 @@ const Login: React.FC = () => {
       </Form.Item>
       <Form.Item name="department">
         <Input placeholder="科室（可选）" />
-      </Form.Item>
-      <Form.Item name="role" initialValue="doctor" label="角色">
-        <Select placeholder="请选择角色">
-          <Select.Option value="doctor">医生</Select.Option>
-          <Select.Option value="viewer">查看者</Select.Option>
-        </Select>
       </Form.Item>
       <Form.Item>
         <Button type="primary" htmlType="submit" block loading={loading}>
