@@ -22,7 +22,7 @@ async def health_check():
 @router.get("/metrics")
 async def get_metrics(
     db: AsyncSession = Depends(get_db),
-    current_user: User = require_role("admin", "doctor")
+    current_user: User = require_role("admin", "doctor", "viewer")
 ):
     from app.services.document_service import DocumentService
     doc_service = DocumentService(db)

@@ -24,9 +24,8 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database tables created.")
 
-    if INDEX_HTML and os.path.exists(INDEX_HTML):
-        from app.startup import seed_database
-        await seed_database()
+    from app.startup import seed_database
+    await seed_database()
 
     yield
 
