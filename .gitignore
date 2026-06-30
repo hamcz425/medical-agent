@@ -24,6 +24,7 @@ backend/start_backend.bat
 # Node.js
 frontend/node_modules/
 frontend/dist/
+backend/static/
 
 # IDE
 .idea/
