@@ -24,8 +24,11 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database tables created.")
 
-    from app.startup import seed_database
-    await seed_database()
+    try:
+        from app.startup import seed_database
+        await seed_database()
+    except Exception as e:
+        logger.error("Seed failed: %s", e)
 
     yield
 

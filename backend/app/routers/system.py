@@ -19,6 +19,30 @@ async def health_check():
     }
 
 
+@router.post("/seed")
+async def manual_seed(db: AsyncSession = Depends(get_db)):
+    from app.utils.auth import get_password_hash
+    from app.models.document import Document
+
+    result = await db.execute(select(User).where(User.username == "doctor1"))
+    if result.scalar_one_or_none():
+        return {"message": "doctor1 already exists", "status": "skipped"}
+
+    doctor = User(
+        username="doctor1",
+        email="doctor1@hospital.com",
+        hashed_password=get_password_hash("doctor123"),
+        full_name="张医生",
+        role="doctor",
+        department="全科"
+    )
+    db.add(doctor)
+    await db.commit()
+    await db.refresh(doctor)
+
+    return {"message": "doctor1 created", "id": doctor.id, "status": "created"}
+
+
 @router.get("/metrics")
 async def get_metrics(
     db: AsyncSession = Depends(get_db),
