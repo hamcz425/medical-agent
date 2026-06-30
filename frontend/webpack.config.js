@@ -56,7 +56,14 @@ module.exports = (env, argv) => {
       },
       hot: true,
       port: 3001,
-      historyApiFallback: true
+      historyApiFallback: true,
+      proxy: [
+        {
+          context: ['/api'],
+          target: 'http://localhost:8000',
+          changeOrigin: true
+        }
+      ]
     }
   };
 };

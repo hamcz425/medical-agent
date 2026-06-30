@@ -3,7 +3,7 @@ import type { MedicalDocument, RAGQuery, SystemStats } from '../types';
 
 export type { MedicalDocument, RAGQuery, SystemStats };
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -136,7 +136,7 @@ export const ragAPI = {
       query,
       top_k: topK,
       retrieval_mode: retrievalMode
-    });
+    }, { timeout: 120000 });
     return response.data;
   },
 

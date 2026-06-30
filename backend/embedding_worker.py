@@ -1,22 +1,65 @@
-import os
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
-os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
-
 import sys
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
 
+import os
 import json
 import pickle
+import time
 import chromadb
 import jieba
+import httpx
 from rank_bm25 import BM25Okapi
-from sentence_transformers import SentenceTransformer
 
-MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+ZHIPUAI_API_KEY = os.environ.get("ZHIPUAI_API_KEY", "")
+ZHIPUAI_BASE_URL = "https://open.bigmodel.cn/api/paas/v4/embeddings"
+EMBEDDING_MODEL = "embedding-2"
+EMBEDDING_DIMENSION = 1024
+
 CHROMA_DIR = os.path.join(os.path.dirname(__file__), "chroma_db")
 COLLECTION_NAME = "medical_documents"
 BM25_INDEX_PATH = os.path.join(CHROMA_DIR, "bm25_index.pkl")
+
+
+def _call_zhipuai_embeddings(texts: list[str]) -> list[list[float]]:
+    """Call ZhipuAI embedding-2 API to get embeddings."""
+    if not ZHIPUAI_API_KEY:
+        raise RuntimeError("ZHIPUAI_API_KEY environment variable not set")
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {ZHIPUAI_API_KEY}"
+    }
+
+    all_embeddings = []
+    batch_size = 20
+
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+        payload = {
+            "model": EMBEDDING_MODEL,
+            "input": batch
+        }
+
+        for attempt in range(3):
+            try:
+                with httpx.Client(timeout=30) as client:
+                    resp = client.post(ZHIPUAI_BASE_URL, json=payload, headers=headers)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    batch_embeddings = [item["embedding"] for item in data["data"]]
+                    all_embeddings.extend(batch_embeddings)
+                    break
+            except Exception as e:
+                if attempt < 2:
+                    time.sleep(1 * (attempt + 1))
+                else:
+                    raise RuntimeError(f"ZhipuAI embedding failed after 3 attempts: {e}")
+
+        if i + batch_size < len(texts):
+            time.sleep(0.3)
+
+    return all_embeddings
 
 
 def chunk_text(text, max_length=512, overlap=50):
@@ -68,8 +111,6 @@ def rebuild_bm25_from_chromadb():
 
 
 def index_document(doc_id, title, content, category, source):
-    model = SentenceTransformer(MODEL_NAME)
-
     client = chromadb.PersistentClient(path=CHROMA_DIR)
     collection = client.get_or_create_collection(
         name=COLLECTION_NAME,
@@ -77,7 +118,7 @@ def index_document(doc_id, title, content, category, source):
     )
 
     chunks = chunk_text(content)
-    embeddings = model.encode(chunks, normalize_embeddings=True, show_progress_bar=False).tolist()
+    embeddings = _call_zhipuai_embeddings(chunks)
 
     ids = [f"doc_{doc_id}_chunk_{i}" for i in range(len(chunks))]
     metadatas = [
@@ -99,12 +140,11 @@ def index_document(doc_id, title, content, category, source):
     )
 
     rebuild_bm25_from_chromadb()
-
     return len(chunks)
 
 
-def vector_search(query_text, top_k, model, collection):
-    query_embedding = model.encode([query_text], normalize_embeddings=True).tolist()[0]
+def vector_search(query_text, top_k, collection):
+    query_embedding = _call_zhipuai_embeddings([query_text])[0]
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=top_k
@@ -166,8 +206,6 @@ def reciprocal_rank_fusion(vector_results, bm25_results, k=60):
 
 
 def query_documents(query_text, top_k=5, mode="hybrid"):
-    model = SentenceTransformer(MODEL_NAME)
-
     client = chromadb.PersistentClient(path=CHROMA_DIR)
     collection = client.get_or_create_collection(
         name=COLLECTION_NAME,
@@ -185,12 +223,12 @@ def query_documents(query_text, top_k=5, mode="hybrid"):
         bm25_results = bm25_search(query_text, top_k, bm25_data)
         results = bm25_results[:top_k]
     elif mode == "vector":
-        results = vector_search(query_text, top_k, model, collection)
+        results = vector_search(query_text, top_k, collection)
     else:
         bm25_data = load_bm25_index()
         if bm25_data is None:
             bm25_data = rebuild_bm25_from_chromadb()
-        vector_results = vector_search(query_text, search_k, model, collection)
+        vector_results = vector_search(query_text, search_k, collection)
         bm25_results = bm25_search(query_text, search_k, bm25_data) if bm25_data else []
         results = reciprocal_rank_fusion(vector_results, bm25_results)[:top_k]
 

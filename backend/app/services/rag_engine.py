@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.models.document import Document
 from app.models.query_log import QueryLog
-from app.services.embedding_service import embedding_service
+
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -63,8 +63,6 @@ class RAGEngine:
         python_exe = sys.executable
         cmd = [python_exe, "-u", self._worker_script] + args
         env = os.environ.copy()
-        env["HF_HUB_OFFLINE"] = "1"
-        env["TRANSFORMERS_OFFLINE"] = "1"
 
         proc = await asyncio.create_subprocess_exec(
             *cmd,
