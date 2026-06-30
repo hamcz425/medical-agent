@@ -1,3 +1,9 @@
+databases:
+  - name: medical-agent-db
+    plan: free
+    databaseName: medical_agent
+    user: medical_agent_user
+
 services:
   - type: web
     name: medical-rag
@@ -14,3 +20,5 @@ services:
         value: "true"
       - key: ALLOWED_ORIGINS
         value: "https://medical-agent-1kp0.onrender.com"
+    envVarsGroups:
+      - databaseName: medical-agent-db
