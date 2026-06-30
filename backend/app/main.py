@@ -1,9 +1,9 @@
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from app.config import get_settings
 from app.database import init_db
@@ -14,14 +14,16 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+INDEX_HTML = os.path.join(STATIC_DIR, "index.html") if STATIC_DIR else None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database tables created.")
 
-    static_dir = os.path.join(os.path.dirname(__file__), "static")
-    if os.path.isdir(static_dir) and os.path.exists(os.path.join(static_dir, "index.html")):
+    if INDEX_HTML and os.path.exists(INDEX_HTML):
         from app.startup import seed_database
         await seed_database()
 
@@ -50,11 +52,6 @@ app.include_router(documents.router)
 app.include_router(rag.router)
 app.include_router(system.router)
 
-static_dir = os.path.join(os.path.dirname(__file__), "static")
-if os.path.isdir(static_dir) and os.path.exists(os.path.join(static_dir, "index.html")):
-    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
-    logger.info("Serving frontend from %s", static_dir)
-
 
 @app.get("/api")
 async def api_root():
@@ -63,3 +60,12 @@ async def api_root():
         "version": settings.APP_VERSION,
         "status": "running"
     }
+
+
+if INDEX_HTML and os.path.exists(INDEX_HTML):
+    @app.get("/{full_path:path}")
+    async def serve_frontend(request: Request, full_path: str):
+        static_file = os.path.join(STATIC_DIR, full_path)
+        if full_path and os.path.isfile(static_file):
+            return FileResponse(static_file)
+        return FileResponse(INDEX_HTML)
